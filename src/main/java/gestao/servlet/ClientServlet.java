@@ -8,21 +8,26 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @WebServlet("/clientes")
 public class ClientServlet extends HttpServlet {
 
+    private static final long serialVersionUID = 1L;
+
+    private List<Cliente> clientes = new ArrayList<>();
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String action = req.getParameter("action");
+        String action = req.getParameter("acao");
 
         if (action == null) {
             action = "list";
         }
 
         switch (action) {
-            case "list":
+            case "listar":
                 listarClientes(req, resp);
                 break;
             case "edit":
@@ -31,8 +36,8 @@ public class ClientServlet extends HttpServlet {
             case "delete":
                 // Lógica para deletar cliente
                 break;
-            case "new":
-                // Lógica para novo cliente
+            case "novo":
+                mostrarFormularioNovo(req, resp);
                 break;
             default:
                 // Lógica padrão
@@ -40,16 +45,53 @@ public class ClientServlet extends HttpServlet {
         }
     }
 
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String acao = req.getParameter("acao");
+
+        if (acao == null) {
+            acao = "inserir";
+        }
+
+        switch (acao) {
+            case "inserir":
+                inserirCliente(req, resp);
+                break;
+            case "atualizar":
+        //        atualizarCliente(req, response);
+                break;
+            default:
+          //      listarClientes(request, response);
+                break;
+        }
+
+    }
+
     private void listarClientes(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
-        Cliente client1 = new Cliente(1, "João Silva", "joao@email.com", "112223333", "123.456.789-00", "Rua A, 123");
-        Cliente client2 = new Cliente(2, "Maria Santos", "maria@email.com", "987654321", "987.654.321-00", "Rua B, 456");
-
-        List<Cliente> clientes = List.of(client1, client2);
 
         request.setAttribute("clientes", clientes);
 
         request.getRequestDispatcher("/lista-clientes.jsp").forward(request, response);
+    }
+
+    private void mostrarFormularioNovo(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.getRequestDispatcher("/formulario-cliente.jsp").forward(request, response);
+    }
+
+    private void inserirCliente(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String nome = request.getParameter("nome");
+        String email = request.getParameter("email");
+        String telefone = request.getParameter("telefone");
+        String cpf = request.getParameter("cpf");
+        String endereco = request.getParameter("endereco");
+
+        Cliente cliente = new Cliente(0, nome, email, telefone, cpf, endereco);
+
+        clientes.add(cliente);
+
+        response.sendRedirect(request.getContextPath() + "/clientes?acao=listar");
     }
 }

@@ -33,8 +33,8 @@ public class ClientServlet extends HttpServlet {
             case "edit":
                 // Lógica para editar cliente
                 break;
-            case "delete":
-                // Lógica para deletar cliente
+            case "deletar":
+                deletarCliente(req, resp);
                 break;
             case "novo":
                 mostrarFormularioNovo(req, resp);
@@ -88,9 +88,26 @@ public class ClientServlet extends HttpServlet {
         String cpf = request.getParameter("cpf");
         String endereco = request.getParameter("endereco");
 
-        Cliente cliente = new Cliente(0, nome, email, telefone, cpf, endereco);
+        int id = clientes.isEmpty() ? 1 : clientes.get(clientes.size() - 1).getId() + 1;
+        Cliente cliente = new Cliente(id, nome, email, telefone, cpf, endereco);
 
         clientes.add(cliente);
+
+        response.sendRedirect(request.getContextPath() + "/clientes?acao=listar");
+    }
+
+    private void deletarCliente(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String idParam = request.getParameter("id");
+
+        if (idParam != null && !idParam.isEmpty()) {
+            try {
+                int id = Integer.parseInt(idParam);
+                clientes.removeIf(cliente -> cliente.getId() == id);
+            } catch (NumberFormatException e) {
+                // Log do erro se necessário
+            }
+        }
 
         response.sendRedirect(request.getContextPath() + "/clientes?acao=listar");
     }

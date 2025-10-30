@@ -23,15 +23,15 @@ public class ClientServlet extends HttpServlet {
         String action = req.getParameter("acao");
 
         if (action == null) {
-            action = "list";
+            action = "listar";
         }
 
         switch (action) {
             case "listar":
                 listarClientes(req, resp);
                 break;
-            case "edit":
-                // Lógica para editar cliente
+            case "editar":
+                mostrarFormularioEditar(req, resp);
                 break;
             case "deletar":
                 deletarCliente(req, resp);
@@ -58,7 +58,7 @@ public class ClientServlet extends HttpServlet {
                 inserirCliente(req, resp);
                 break;
             case "atualizar":
-        //        atualizarCliente(req, response);
+                atualizarCliente(req, resp);
                 break;
             default:
           //      listarClientes(request, response);
@@ -104,6 +104,60 @@ public class ClientServlet extends HttpServlet {
             try {
                 int id = Integer.parseInt(idParam);
                 clientes.removeIf(cliente -> cliente.getId() == id);
+            } catch (NumberFormatException e) {
+                // Log do erro se necessário
+            }
+        }
+
+        response.sendRedirect(request.getContextPath() + "/clientes?acao=listar");
+    }
+
+    private void mostrarFormularioEditar(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String idParam = request.getParameter("id");
+
+        if (idParam != null && !idParam.isEmpty()) {
+            try {
+                int id = Integer.parseInt(idParam);
+                Cliente cliente = clientes.stream()
+                        .filter(c -> c.getId() == id)
+                        .findFirst()
+                        .orElse(null);
+
+                if (cliente != null) {
+                    request.setAttribute("cliente", cliente);
+                    request.getRequestDispatcher("/formulario-cliente.jsp").forward(request, response);
+                } else {
+                    response.sendRedirect(request.getContextPath() + "/clientes?acao=listar");
+                }
+            } catch (NumberFormatException e) {
+                response.sendRedirect(request.getContextPath() + "/clientes?acao=listar");
+            }
+        } else {
+            response.sendRedirect(request.getContextPath() + "/clientes?acao=listar");
+        }
+    }
+
+    private void atualizarCliente(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String idParam = request.getParameter("id");
+        String nome = request.getParameter("nome");
+        String email = request.getParameter("email");
+        String telefone = request.getParameter("telefone");
+        String cpf = request.getParameter("cpf");
+        String endereco = request.getParameter("endereco");
+
+        if (idParam != null && !idParam.isEmpty()) {
+            try {
+                int id = Integer.parseInt(idParam);
+
+                for (int i = 0; i < clientes.size(); i++) {
+                    if (clientes.get(i).getId() == id) {
+                        Cliente clienteAtualizado = new Cliente(id, nome, email, telefone, cpf, endereco);
+                        clientes.set(i, clienteAtualizado);
+                        break;
+                    }
+                }
             } catch (NumberFormatException e) {
                 // Log do erro se necessário
             }

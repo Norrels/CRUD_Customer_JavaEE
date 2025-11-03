@@ -1,5 +1,6 @@
 package gestao.servlet;
 
+import gestao.dao.ClienteDAO;
 import gestao.model.Cliente;
 
 import javax.servlet.ServletException;
@@ -8,7 +9,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.sql.SQLException;
 import java.util.List;
 
 @WebServlet("/clientes")
@@ -16,7 +17,7 @@ public class ClientServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
-    private List<Cliente> clientes = new ArrayList<>();
+    private ClienteDAO clienteDAO = new ClienteDAO();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -69,10 +70,13 @@ public class ClientServlet extends HttpServlet {
 
     private void listarClientes(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
-        request.setAttribute("clientes", clientes);
-
-        request.getRequestDispatcher("/lista-clientes.jsp").forward(request, response);
+        try {
+            List<Cliente> clientes = clienteDAO.listarTodos();
+            request.setAttribute("clientes", clientes);
+            request.getRequestDispatcher("/lista-clientes.jsp").forward(request, response);
+        } catch (SQLException e) {
+            throw new ServletException("Erro ao listar clientes", e);
+        }
     }
 
     private void mostrarFormularioNovo(HttpServletRequest request, HttpServletResponse response)
@@ -88,12 +92,19 @@ public class ClientServlet extends HttpServlet {
         String cpf = request.getParameter("cpf");
         String endereco = request.getParameter("endereco");
 
-        int id = clientes.isEmpty() ? 1 : clientes.get(clientes.size() - 1).getId() + 1;
-        Cliente cliente = new Cliente(id, nome, email, telefone, cpf, endereco);
+        Cliente cliente = new Cliente();
+        cliente.setNome(nome);
+        cliente.setEmail(email);
+        cliente.setTelefone(telefone);
+        cliente.setCpf(cpf);
+        cliente.setEndereco(endereco);
 
-        clientes.add(cliente);
-
-        response.sendRedirect(request.getContextPath() + "/clientes?acao=listar");
+        try {
+            clienteDAO.inserir(cliente);
+            response.sendRedirect(request.getContextPath() + "/clientes?acao=listar");
+        } catch (SQLException e) {
+            throw new ServletException("Erro ao inserir cliente", e);
+        }
     }
 
     private void deletarCliente(HttpServletRequest request, HttpServletResponse response)
@@ -103,9 +114,10 @@ public class ClientServlet extends HttpServlet {
         if (idParam != null && !idParam.isEmpty()) {
             try {
                 int id = Integer.parseInt(idParam);
-                clientes.removeIf(cliente -> cliente.getId() == id);
+                clienteDAO.deletar(id);
             } catch (NumberFormatException e) {
-                // Log do erro se necessário
+            } catch (SQLException e) {
+                throw new ServletException("Erro ao deletar cliente", e);
             }
         }
 
@@ -119,10 +131,7 @@ public class ClientServlet extends HttpServlet {
         if (idParam != null && !idParam.isEmpty()) {
             try {
                 int id = Integer.parseInt(idParam);
-                Cliente cliente = clientes.stream()
-                        .filter(c -> c.getId() == id)
-                        .findFirst()
-                        .orElse(null);
+                Cliente cliente = clienteDAO.buscarPorId(id);
 
                 if (cliente != null) {
                     request.setAttribute("cliente", cliente);
@@ -132,6 +141,8 @@ public class ClientServlet extends HttpServlet {
                 }
             } catch (NumberFormatException e) {
                 response.sendRedirect(request.getContextPath() + "/clientes?acao=listar");
+            } catch (SQLException e) {
+                throw new ServletException("Erro ao buscar cliente", e);
             }
         } else {
             response.sendRedirect(request.getContextPath() + "/clientes?acao=listar");
@@ -151,15 +162,19 @@ public class ClientServlet extends HttpServlet {
             try {
                 int id = Integer.parseInt(idParam);
 
-                for (int i = 0; i < clientes.size(); i++) {
-                    if (clientes.get(i).getId() == id) {
-                        Cliente clienteAtualizado = new Cliente(id, nome, email, telefone, cpf, endereco);
-                        clientes.set(i, clienteAtualizado);
-                        break;
-                    }
-                }
+                Cliente cliente = new Cliente();
+                cliente.setId(id);
+                cliente.setNome(nome);
+                cliente.setEmail(email);
+                cliente.setTelefone(telefone);
+                cliente.setCpf(cpf);
+                cliente.setEndereco(endereco);
+
+                clienteDAO.atualizar(cliente);
             } catch (NumberFormatException e) {
                 // Log do erro se necessário
+            } catch (SQLException e) {
+                throw new ServletException("Erro ao atualizar cliente", e);
             }
         }
 
